@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { usePDF } from 'react-to-pdf';
-import { FileDown, Plus, Trash2 } from 'lucide-react';
+import { FileDown, Plus, Trash2, Image } from 'lucide-react';
 
 interface FinancialEntry {
   id: string;
   description: string;
   amount: number;
+  image?: string; // Base64 string for the image
 }
 
 function App() {
@@ -24,6 +25,36 @@ function App() {
     filename: 'الميزانية-المالية.pdf',
     page: { format: 'a4' }
   });
+
+  const handleImageUpload = async (id: string, type: 'income' | 'expense', event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('حجم الصورة كبير جداً. الحد الأقصى هو 5 ميجابايت');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      
+      if (type === 'income') {
+        setIncomeEntries(entries =>
+          entries.map(entry =>
+            entry.id === id ? { ...entry, image: base64String } : entry
+          )
+        );
+      } else {
+        setExpenseEntries(entries =>
+          entries.map(entry =>
+            entry.id === id ? { ...entry, image: base64String } : entry
+          )
+        );
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const addEntry = (type: 'income' | 'expense') => {
     const newEntry = { id: Date.now().toString(), description: '', amount: 0 };
@@ -75,8 +106,8 @@ function App() {
           <p>(عمارات الشرطة)</p>
         </h1>
 
-         {/* فترة الحساب */}
-         <div className="mb-8">
+        {/* فترة الحساب */}
+        <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">فترة الحساب</h2>
           <div className="flex gap-4">
             <div>
@@ -118,31 +149,54 @@ function App() {
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">الدخل</h2>
           {incomeEntries.map((entry) => (
-            <div key={entry.id} className="flex gap-4 mb-4">
-              <input
-                type="text"
-                value={entry.description}
-                onChange={(e) =>
-                  updateEntry(entry.id, 'description', e.target.value, 'income')
-                }
-                className="flex-1 p-2 border rounded-md"
-                placeholder="وصف الدخل"
-              />
-              <input
-                type="number"
-                value={entry.amount}
-                onChange={(e) =>
-                  updateEntry(entry.id, 'amount', Number(e.target.value), 'income')
-                }
-                className="w-48 p-2 border rounded-md"
-                placeholder="المبلغ"
-              />
-              <button
-                onClick={() => removeEntry(entry.id, 'income')}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-md"
-              >
-                <Trash2 size={20} />
-              </button>
+            <div key={entry.id} className="mb-6 border rounded-lg p-4 bg-gray-50">
+              <div className="flex gap-4 mb-2">
+                <input
+                  type="text"
+                  value={entry.description}
+                  onChange={(e) =>
+                    updateEntry(entry.id, 'description', e.target.value, 'income')
+                  }
+                  className="flex-1 p-2 border rounded-md bg-white"
+                  placeholder="وصف الدخل"
+                />
+                <input
+                  type="number"
+                  value={entry.amount}
+                  onChange={(e) =>
+                    updateEntry(entry.id, 'amount', Number(e.target.value), 'income')
+                  }
+                  className="w-48 p-2 border rounded-md bg-white"
+                  placeholder="المبلغ"
+                />
+                <button
+                  onClick={() => removeEntry(entry.id, 'income')}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-md bg-white"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+              <div className="mt-2">
+                <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50">
+                  <Image size={20} className="text-gray-600" />
+                  <span className="text-sm text-gray-600">إرفاق صورة</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(entry.id, 'income', e)}
+                    className="hidden"
+                  />
+                </label>
+                {entry.image && (
+                  <div className="mt-2">
+                    <img
+                      src={entry.image}
+                      alt="المرفق"
+                      className="max-h-32 rounded-md"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           ))}
           <button
@@ -158,31 +212,54 @@ function App() {
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">المصروفات</h2>
           {expenseEntries.map((entry) => (
-            <div key={entry.id} className="flex gap-4 mb-4">
-              <input
-                type="text"
-                value={entry.description}
-                onChange={(e) =>
-                  updateEntry(entry.id, 'description', e.target.value, 'expense')
-                }
-                className="flex-1 p-2 border rounded-md"
-                placeholder="وصف المصروف"
-              />
-              <input
-                type="number"
-                value={entry.amount}
-                onChange={(e) =>
-                  updateEntry(entry.id, 'amount', Number(e.target.value), 'expense')
-                }
-                className="w-48 p-2 border rounded-md"
-                placeholder="المبلغ"
-              />
-              <button
-                onClick={() => removeEntry(entry.id, 'expense')}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-md"
-              >
-                <Trash2 size={20} />
-              </button>
+            <div key={entry.id} className="mb-6 border rounded-lg p-4 bg-gray-50">
+              <div className="flex gap-4 mb-2">
+                <input
+                  type="text"
+                  value={entry.description}
+                  onChange={(e) =>
+                    updateEntry(entry.id, 'description', e.target.value, 'expense')
+                  }
+                  className="flex-1 p-2 border rounded-md bg-white"
+                  placeholder="وصف المصروف"
+                />
+                <input
+                  type="number"
+                  value={entry.amount}
+                  onChange={(e) =>
+                    updateEntry(entry.id, 'amount', Number(e.target.value), 'expense')
+                  }
+                  className="w-48 p-2 border rounded-md bg-white"
+                  placeholder="المبلغ"
+                />
+                <button
+                  onClick={() => removeEntry(entry.id, 'expense')}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-md bg-white"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+              <div className="mt-2">
+                <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50">
+                  <Image size={20} className="text-gray-600" />
+                  <span className="text-sm text-gray-600">إرفاق صورة</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(entry.id, 'expense', e)}
+                    className="hidden"
+                  />
+                </label>
+                {entry.image && (
+                  <div className="mt-2">
+                    <img
+                      src={entry.image}
+                      alt="المرفق"
+                      className="max-h-32 rounded-md"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           ))}
           <button
