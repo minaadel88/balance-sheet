@@ -6,7 +6,7 @@ interface FinancialEntry {
   id: string;
   description: string;
   amount: number;
-  image?: string; // Base64 string for the image
+  image?: string;
 }
 
 function App() {
@@ -23,14 +23,22 @@ function App() {
 
   const { toPDF, targetRef } = usePDF({
     filename: 'الميزانية-المالية.pdf',
-    page: { format: 'a4' }
+    page: { format: 'a4' },
+    method: 'save',
+    resolution: 2,
+    page_breaks: true,
+    targetRef: null,
+    options: {
+      margin: [15, 15, 15, 15],
+      image: { type: 'jpeg', quality: 0.98 }
+    }
   });
 
   const handleImageUpload = async (id: string, type: 'income' | 'expense', event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       alert('حجم الصورة كبير جداً. الحد الأقصى هو 5 ميجابايت');
       return;
     }
@@ -96,68 +104,68 @@ function App() {
   const netBalance = startBalance + totalIncome - totalExpenses;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-right" dir="rtl">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6 text-right print:text-center print:p-0 print:bg-white" dir="rtl">
       <div
         ref={targetRef}
-        className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8"
+        className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 print:shadow-none"
       >
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 text-gray-800">
           ميزانية صندوق عمارة 32 عمارات الاخاء 
-          <p>(عمارات الشرطة)</p>
+          <p className="text-lg sm:text-xl mt-1">(عمارات الشرطة)</p>
         </h1>
 
         {/* فترة الحساب */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">فترة الحساب</h2>
-          <div className="flex gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">من تاريخ:</label>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center">فترة الحساب</h2>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 print:text-center">من تاريخ:</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md print:text-center"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">حتى تاريخ:</label>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 print:text-center">حتى تاريخ:</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md print:text-center"
               />
             </div>
           </div>
         </div>
 
         {/* رصيد بداية العام */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 text-gray-700 print:text-center">
             رصيد بداية الفترة
           </h2>
           <input
             type="number"
             value={startBalance}
             onChange={(e) => setStartBalance(Number(e.target.value))}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 border rounded-md print:text-center"
             placeholder="أدخل الرصيد الافتتاحي"
           />
         </div>
 
         {/* قسم الدخل */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">الدخل</h2>
+        <div className="mb-6 sm:mb-8 print:break-inside-avoid">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center">الدخل</h2>
           {incomeEntries.map((entry) => (
-            <div key={entry.id} className="mb-6 border rounded-lg p-4 bg-gray-50">
-              <div className="flex gap-4 mb-2">
+            <div key={entry.id} className="mb-4 sm:mb-6 border rounded-lg p-3 sm:p-4 bg-gray-50 print:break-inside-avoid">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-2">
                 <input
                   type="text"
                   value={entry.description}
                   onChange={(e) =>
                     updateEntry(entry.id, 'description', e.target.value, 'income')
                   }
-                  className="flex-1 p-2 border rounded-md bg-white"
+                  className="flex-1 p-2 border rounded-md bg-white print:text-center"
                   placeholder="وصف الدخل"
                 />
                 <input
@@ -166,18 +174,18 @@ function App() {
                   onChange={(e) =>
                     updateEntry(entry.id, 'amount', Number(e.target.value), 'income')
                   }
-                  className="w-48 p-2 border rounded-md bg-white"
+                  className="w-full sm:w-48 p-2 border rounded-md bg-white print:text-center"
                   placeholder="المبلغ"
                 />
                 <button
                   onClick={() => removeEntry(entry.id, 'income')}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-md bg-white"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-md bg-white print:hidden"
                 >
                   <Trash2 size={20} />
                 </button>
               </div>
-              <div className="mt-2">
-                <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50">
+              <div className="mt-2 print:break-inside-avoid">
+                <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50 print:hidden">
                   <Image size={20} className="text-gray-600" />
                   <span className="text-sm text-gray-600">إرفاق صورة</span>
                   <input
@@ -188,7 +196,7 @@ function App() {
                   />
                 </label>
                 {entry.image && (
-                  <div className="mt-2">
+                  <div className="mt-2 print:flex print:justify-center">
                     <img
                       src={entry.image}
                       alt="المرفق"
@@ -201,7 +209,7 @@ function App() {
           ))}
           <button
             onClick={() => addEntry('income')}
-            className="flex items-center gap-2 text-green-600 hover:bg-green-50 p-2 rounded-md"
+            className="flex items-center gap-2 text-green-600 hover:bg-green-50 p-2 rounded-md print:hidden"
           >
             <Plus size={20} />
             <span>إضافة دخل جديد</span>
@@ -209,18 +217,18 @@ function App() {
         </div>
 
         {/* قسم المصروفات */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">المصروفات</h2>
+        <div className="mb-6 sm:mb-8 print:break-inside-avoid">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center">المصروفات</h2>
           {expenseEntries.map((entry) => (
-            <div key={entry.id} className="mb-6 border rounded-lg p-4 bg-gray-50">
-              <div className="flex gap-4 mb-2">
+            <div key={entry.id} className="mb-4 sm:mb-6 border rounded-lg p-3 sm:p-4 bg-gray-50 print:break-inside-avoid">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-2">
                 <input
                   type="text"
                   value={entry.description}
                   onChange={(e) =>
                     updateEntry(entry.id, 'description', e.target.value, 'expense')
                   }
-                  className="flex-1 p-2 border rounded-md bg-white"
+                  className="flex-1 p-2 border rounded-md bg-white print:text-center"
                   placeholder="وصف المصروف"
                 />
                 <input
@@ -229,18 +237,18 @@ function App() {
                   onChange={(e) =>
                     updateEntry(entry.id, 'amount', Number(e.target.value), 'expense')
                   }
-                  className="w-48 p-2 border rounded-md bg-white"
+                  className="w-full sm:w-48 p-2 border rounded-md bg-white print:text-center"
                   placeholder="المبلغ"
                 />
                 <button
                   onClick={() => removeEntry(entry.id, 'expense')}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-md bg-white"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-md bg-white print:hidden"
                 >
                   <Trash2 size={20} />
                 </button>
               </div>
-              <div className="mt-2">
-                <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50">
+              <div className="mt-2 print:break-inside-avoid">
+                <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50 print:hidden">
                   <Image size={20} className="text-gray-600" />
                   <span className="text-sm text-gray-600">إرفاق صورة</span>
                   <input
@@ -251,7 +259,7 @@ function App() {
                   />
                 </label>
                 {entry.image && (
-                  <div className="mt-2">
+                  <div className="mt-2 print:flex print:justify-center">
                     <img
                       src={entry.image}
                       alt="المرفق"
@@ -264,7 +272,7 @@ function App() {
           ))}
           <button
             onClick={() => addEntry('expense')}
-            className="flex items-center gap-2 text-green-600 hover:bg-green-50 p-2 rounded-md"
+            className="flex items-center gap-2 text-green-600 hover:bg-green-50 p-2 rounded-md print:hidden"
           >
             <Plus size={20} />
             <span>إضافة مصروف جديد</span>
@@ -272,16 +280,16 @@ function App() {
         </div>
 
         {/* الإجماليات */}
-        <div className="border-t pt-6 space-y-4">
-          <div className="flex justify-between text-lg">
+        <div className="border-t pt-4 sm:pt-6 space-y-3 sm:space-y-4 print:break-inside-avoid">
+          <div className="flex justify-between text-base sm:text-lg print:flex-col print:text-center print:gap-1">
             <span className="font-semibold">إجمالي الدخل:</span>
             <span className="text-green-600">{totalIncome} جنيه</span>
           </div>
-          <div className="flex justify-between text-lg">
+          <div className="flex justify-between text-base sm:text-lg print:flex-col print:text-center print:gap-1">
             <span className="font-semibold">إجمالي المصروفات:</span>
             <span className="text-red-600">{totalExpenses} جنيه</span>
           </div>
-          <div className="flex justify-between text-xl font-bold">
+          <div className="flex justify-between text-lg sm:text-xl font-bold print:flex-col print:text-center print:gap-1">
             <span>صافي الرصيد:</span>
             <span className={netBalance >= 0 ? 'text-green-600' : 'text-red-600'}>
               {netBalance} جنيه
@@ -290,22 +298,22 @@ function App() {
         </div>
 
         {/* قسم الملاحظات */}
-        <div className="mt-8 border-t pt-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">ملاحظات</h2>
+        <div className="mt-6 sm:mt-8 border-t pt-4 sm:pt-6 print:break-inside-avoid">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center">ملاحظات</h2>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full p-4 border rounded-md min-h-[120px] resize-y"
+            className="w-full p-4 border rounded-md min-h-[120px] resize-y print:text-center"
             placeholder="أضف ملاحظاتك هنا..."
           />
         </div>
       </div>
 
       {/* زر تحميل PDF */}
-      <div className="max-w-4xl mx-auto mt-6 flex justify-center">
+      <div className="max-w-4xl mx-auto mt-4 sm:mt-6 flex justify-center print:hidden">
         <button
           onClick={() => toPDF()}
-          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <FileDown size={20} />
           <span>تحميل كملف PDF</span>
