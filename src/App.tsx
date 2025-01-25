@@ -1,12 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { usePDF } from 'react-to-pdf';
-import { FileDown, Plus, Trash2, Image } from 'lucide-react';
+import { FileDown, Plus, Trash2, Image, Check, X } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface FinancialEntry {
   id: string;
   description: string;
   amount: number;
   image?: string;
+}
+
+interface ApartmentPayment {
+  id: string;
+  name: string;
+  paid: boolean;
+  amount: number;
 }
 
 function App() {
@@ -20,19 +28,49 @@ function App() {
   const [notes, setNotes] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [apartmentPayments, setApartmentPayments] = useState<ApartmentPayment[]>([
+    { id: '1', name: 'شقة 1/ أ/ سعيد ندى', paid: false, amount: 0 },
+    { id: '2', name: 'شقة 2/ لواء / محمد عثمان', paid: false, amount: 0 },
+    { id: '3', name: 'شقة 11/ أ /محمد منير', paid: false, amount: 0 },
+    { id: '4', name: 'شقة 12/أ / ايمن البدرى ', paid: false, amount: 0 },
+    { id: '5', name: 'شقة 13 /عميد / ياسر شلتوت', paid: false, amount: 0 },
+    { id: '6', name: 'شقة 14 / أ/ اسلام فاضل', paid: false, amount: 0 },
+    { id: '7', name: 'شقة 21 / أ/ خالد ', paid: false, amount: 0 },
+    { id: '8', name: 'شقة 22 / دكتور / سمير', paid: false, amount: 0 },
+    { id: '9', name: 'شقة 23 / م/ حسن المصرى', paid: false, amount: 0 },
+    { id: '10', name: 'شقة 24 / أ /محمد عبدالظاهر', paid: false, amount: 0 },
+    { id: '11', name: 'شقة 31 / دكتور / يحيى زكريا', paid: false, amount: 0 },
+    { id: '12', name: 'شقة 32 / دكتور / اشرف ', paid: false, amount: 0 },
+    { id: '13', name: 'شقة 33/ أ/ محمد المصرى', paid: false, amount: 0 },
+    { id: '14', name: 'شقة 34/ دكتور / احمد سمير', paid: false, amount: 0 },
+    { id: '15', name: 'شقة 41/ ك /عبدالرحمن نصر الدين', paid: false, amount: 0 },
+    { id: '16', name: 'شقة 42/لواء / محسن صلاح الدين ', paid: false, amount: 0 },
+    { id: '17', name: 'شقة 43 /م / عماد على ', paid: false, amount: 0 },
+    { id: '18', name: 'شقة 44 / لواء / اسامة ابو زيد', paid: false, amount: 0 },
+    { id: '19', name: 'شقة 51 / م/ يسرى لطفى ', paid: false, amount: 0 },
+    { id: '20', name: 'شقة 52 / مستشار / عبدالله', paid: false, amount: 0 },
+    { id: '21', name: 'شقة 53 / م/ محمد اسامة', paid: false, amount: 0 },
+    { id: '22', name: 'شقة 54 / دكتور /يحيى النمر', paid: false, amount: 0 },
+    { id: '23', name: 'شقة 61 / م / كامل القاضى', paid: false, amount: 0 },
+    { id: '24', name: 'شقة 62 / لواء/ بليغ ', paid: false, amount: 0 },
+    { id: '25', name: 'شقة 63 / لواء.د/ ايمان الشربينى ', paid: false, amount: 0 },
+    { id: '26', name: 'شقة 64 / أ / نائل', paid: false, amount: 0 },
+    { id: '27', name: 'شقة 71 / مستشار/ اسلام ', paid: false, amount: 0 },
+    { id: '28', name: 'شقة 72 / دكتور /مجدى النشار', paid: false, amount: 0 },
+    { id: '29', name: 'شقة 73 / لواء / فوزى ', paid: false, amount: 0 },
+    { id: '30', name: 'شقة 74 / م / احمد فرج ', paid: false, amount: 0 },
+    { id: '31', name: 'شقة 81/ ك/ احمد فهمى', paid: false, amount: 0 },
+    { id: '32', name: 'شقة 82/ لواء / احمد ممتاز', paid: false, amount: 0 },
+    { id: '33', name: 'شقة 83/ دكتور /فهمى  ابو غدير', paid: false, amount: 0 },
+    { id: '34', name: 'شقة 84/دكتور / اسماء  ', paid: false, amount: 0 },
+    { id: '35', name: 'شقة 91 /دكتور / ريم الدسوقى', paid: false, amount: 0 },
+    { id: '36', name: 'شقة 92 / م/ علاء عبدالحافظ', paid: false, amount: 0 },
+    { id: '37', name: 'شقة 93 / م/ هشام فضل ', paid: false, amount: 0 },
+    { id: '38', name: 'شقة 94 / لواء / عادل عدلى', paid: false, amount: 0 }
+  
+  ]);
 
-  const { toPDF, targetRef } = usePDF({
-    filename: 'الميزانية-المالية.pdf',
-    page: { format: 'a4' },
-    method: 'save',
-    resolution: 2,
-    page_breaks: true,
-    targetRef: null,
-    options: {
-      margin: [15, 15, 15, 15],
-      image: { type: 'jpeg', quality: 0.98 }
-    }
-  });
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleImageUpload = async (id: string, type: 'income' | 'expense', event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -62,6 +100,12 @@ function App() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const updateApartmentPayment = (id: string, field: 'paid' | 'amount', value: boolean | number) => {
+    setApartmentPayments(apartmentPayments.map(payment =>
+      payment.id === id ? { ...payment, [field]: value } : payment
+    ));
   };
 
   const addEntry = (type: 'income' | 'expense') => {
@@ -99,14 +143,47 @@ function App() {
     }
   };
 
-  const totalIncome = incomeEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const totalApartmentPayments = apartmentPayments.reduce(
+    (sum, payment) => sum + (payment.paid ? payment.amount : 0),
+    0
+  );
+
+  const totalIncome = incomeEntries.reduce((sum, entry) => sum + entry.amount, 0) + totalApartmentPayments;
   const totalExpenses = expenseEntries.reduce((sum, entry) => sum + entry.amount, 0);
   const netBalance = startBalance + totalIncome - totalExpenses;
+
+  const generatePDF = () => {
+    if (contentRef.current) {
+      html2canvas(contentRef.current, { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+  
+        // Add first page
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+  
+        // Add additional pages
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+  
+        pdf.save('الميزانية-المالية.pdf');
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6 text-right print:text-center print:p-0 print:bg-white" dir="rtl">
       <div
-        ref={targetRef}
+        ref={contentRef}
         className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 print:shadow-none"
       >
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 text-gray-800">
@@ -153,9 +230,62 @@ function App() {
           />
         </div>
 
+        {/* جدول الشقق */}
+        <div className="mb-6 sm:mb-8 print:break-inside-avoid">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center"> اشتراكات الشقق فى الصيانة الشهرية</h2>
+
+          {/* جدول الشقق */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+            {apartmentPayments.map((payment) => (
+              <div
+                key={payment.id}
+                className={`p-4 border rounded-lg ${
+                  payment.paid ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold">{payment.name}</span>
+                  <button
+                    onClick={() => updateApartmentPayment(payment.id, 'paid', !payment.paid)}
+                    className={`p-1 rounded-full ${
+                      payment.paid
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-gray-100 text-gray-400'
+                    } print:hidden`}
+                  >
+                    {payment.paid ? <Check size={16} /> : <X size={16} />}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 print:text-center">المبلغ المدفوع:</label>
+                  <input
+                    type="number"
+                    value={payment.amount}
+                    onChange={(e) => updateApartmentPayment(payment.id, 'amount', Number(e.target.value))}
+                    className="w-full p-2 border rounded-md bg-white print:text-center"
+                    placeholder="المبلغ"
+                  />
+                </div>
+                <div className="text-sm text-gray-600">
+                  {payment.amount} جنيه
+                  {payment.paid && <span className="text-green-600 block">تم الدفع</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* إجمالي دفعات الشقق */}
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div className="text-lg font-semibold flex justify-between print:flex-col print:text-center print:gap-1">
+              <span>إجمالي الاشتراكات الشهرية للشقق:</span>
+              <span className="text-green-600">{totalApartmentPayments} جنيه</span>
+            </div>
+          </div>
+        </div>
+
         {/* قسم الدخل */}
         <div className="mb-6 sm:mb-8 print:break-inside-avoid">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center">الدخل</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700 print:text-center">دخل إضافي</h2>
           {incomeEntries.map((entry) => (
             <div key={entry.id} className="mb-4 sm:mb-6 border rounded-lg p-3 sm:p-4 bg-gray-50 print:break-inside-avoid">
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-2">
@@ -312,7 +442,7 @@ function App() {
       {/* زر تحميل PDF */}
       <div className="max-w-4xl mx-auto mt-4 sm:mt-6 flex justify-center print:hidden">
         <button
-          onClick={() => toPDF()}
+          onClick={generatePDF}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <FileDown size={20} />
