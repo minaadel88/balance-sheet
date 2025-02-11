@@ -29,9 +29,9 @@ function App() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [apartmentPayments, setApartmentPayments] = useState<ApartmentPayment[]>([
-    { id: '1', name: 'شقة 1/ أ/ سعيد ندى', paid: false, amount: 0 },
+    { id: '1', name: 'شقة 1/ أ/ احمد سليم', paid: false, amount: 0 },
     { id: '2', name: 'شقة 2/ لواء / محمد عثمان', paid: false, amount: 0 },
-    { id: '3', name: 'شقة 11/ أ /محمد منير', paid: false, amount: 0 },
+    { id: '3', name: 'شقة 11/ أ /عماد الدين ', paid: false, amount: 0 },
     { id: '4', name: 'شقة 12/أ / ايمن البدرى ', paid: false, amount: 0 },
     { id: '5', name: 'شقة 13 /عميد / ياسر شلتوت', paid: false, amount: 0 },
     { id: '6', name: 'شقة 14 / أ/ اسلام فاضل', paid: false, amount: 0 },
@@ -62,7 +62,7 @@ function App() {
     { id: '31', name: 'شقة 81/ ك/ احمد فهمى', paid: false, amount: 0 },
     { id: '32', name: 'شقة 82/ لواء / احمد ممتاز', paid: false, amount: 0 },
     { id: '33', name: 'شقة 83/ دكتور /فهمى  ابو غدير', paid: false, amount: 0 },
-    { id: '34', name: 'شقة 84/دكتور / اسماء  ', paid: false, amount: 0 },
+    { id: '34', name: 'شقة 84/دكتورة / اسماء  ', paid: false, amount: 0 },
     { id: '35', name: 'شقة 91 /دكتور / ريم الدسوقى', paid: false, amount: 0 },
     { id: '36', name: 'شقة 92 / م/ علاء عبدالحافظ', paid: false, amount: 0 },
     { id: '37', name: 'شقة 93 / م/ هشام فضل ', paid: false, amount: 0 },
