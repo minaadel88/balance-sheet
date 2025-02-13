@@ -53,7 +53,7 @@ function App() {
     { id: '23', name: 'شقة 61 / م / كامل القاضى', paid: false, amount: 0 },
     { id: '24', name: 'شقة 62 / لواء/ بليغ ', paid: false, amount: 0 },
     { id: '25', name: 'شقة 63 / لواء.د/ ايمان الشربينى ', paid: false, amount: 0 },
-    { id: '26', name: 'شقة 64 / أ / نائل', paid: false, amount: 50 },
+    { id: '26', name: 'شقة 64 / أ / نائل', paid: false, amount: 0 },
     { id: '27', name: 'شقة 71 / مستشار/ اسلام ', paid: false, amount: 0 },
     { id: '28', name: 'شقة 72 / دكتور /مجدى النشار', paid: false, amount: 0 },
     { id: '29', name: 'شقة 73 / لواء / فوزى ', paid: false, amount: 0 },
@@ -184,7 +184,7 @@ function App() {
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20; // 20mm margins
+      const margin = 30; // 20mm margins
       const imgWidth = pageWidth - (margin * 2);
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
