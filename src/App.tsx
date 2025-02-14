@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { Upload } from 'lucide-react';
 
 interface FinancialEntry {
   id: string;
@@ -17,6 +18,7 @@ interface ApartmentPayment {
 }
 
 function App() {
+  const contentRef = useRef<HTMLDivElement>(null);
   const [startBalance, setStartBalance] = useState<number>(0);
   const [incomeEntries, setIncomeEntries] = useState<FinancialEntry[]>([
     { id: '1', description: '', amount: 0 }
@@ -27,6 +29,7 @@ function App() {
   const [notes, setNotes] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [isPrinting, setIsPrinting] = useState(false);
   const [apartmentPayments, setApartmentPayments] = useState<ApartmentPayment[]>([
     { id: '1', name: 'شقة 1/ أ/ احمد سليم', paid: false, amount: 0 },
     { id: '2', name: 'شقة 2/ لواء / محمد عثمان', paid: false, amount: 0 },
@@ -67,9 +70,6 @@ function App() {
     { id: '37', name: 'شقة 93 / م/ هشام فضل ', paid: false, amount: 0 },
     { id: '38', name: 'شقة 94 / لواء / عادل عدلى', paid: false, amount: 0 }
   ]);
-
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
 
   const handleImageUpload = async (id: string, type: 'income' | 'expense', event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -148,317 +148,318 @@ function App() {
 
     try {
       setIsPrinting(true);
-      
-      const printContent = contentRef.current.cloneNode(true) as HTMLElement;
-      printContent.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
-      
-      // Set fixed dimensions for better consistency
-      printContent.style.width = '1024px';
-      printContent.style.position = 'center';
-      printContent.style.direction='rtl';
-      document.body.appendChild(printContent);
 
+      // Step 1: Clone the content for printing
+      const printContent = contentRef.current.cloneNode(true) as HTMLElement;
+
+      // Remove elements that should not appear in the print version
+      printContent.querySelectorAll('.print\\:hidden:not(img)').forEach(el => el.remove());
+
+      // Adjust image styles for better appearance
+      printContent.querySelectorAll('img').forEach(img => {
+        img.classList.remove('print:hidden');
+        (img as HTMLImageElement).style.maxWidth = '150px';
+        (img as HTMLImageElement).style.height = '80px';
+        (img as HTMLImageElement).style.margin = '10px';
+      });
+
+      // Style adjustments for the cloned content
+      printContent.style.width = '900px'; // Set a fixed width for consistent rendering
+      printContent.style.position = 'relative'; // Ensure proper positioning
+      printContent.style.fontFamily = 'Arial, sans-serif'; // Use a clean font
+      printContent.style.fontSize = '16px'; // Base font size
+      printContent.style.lineHeight = '1.9'; // Improve readability
+
+      document.body.appendChild(printContent); // Append to DOM for rendering
+
+      // Step 2: Generate a canvas representation of the content
       const canvas = await html2canvas(printContent, {
-        scale: 2,
+        scale: 2, // High-resolution rendering
         useCORS: true,
         allowTaint: true,
         scrollY: -window.scrollY,
-        windowWidth: 1024,
-        windowHeight: printContent.scrollHeight,
-        onclone: (_document, element) => {
-          // Additional cleanup in cloned element if needed
-          element.style.transform = '';
-          element.style.webkitTransform = '';
+        onclone: (clonedDoc) => {
+          const allText = clonedDoc.querySelectorAll('p, h1, h2, h3, td, th, div');
+          allText.forEach(el => {
+            (el as HTMLElement).style.fontSize = '18px'; // Slightly smaller font for compactness
+            (el as HTMLElement).style.lineHeight = '1.6'; // Maintain readability
+          });
+
+          const headers = clonedDoc.querySelectorAll('h1, h2');
+          headers.forEach(el => {
+            (el as HTMLElement).style.fontSize = '20px'; // Larger font for headers
+            (el as HTMLElement).style.marginBottom = '10px'; // Add spacing below headers
+          });
+
+          const sections = clonedDoc.querySelectorAll('.mb-8');
+          sections.forEach(el => {
+            (el as HTMLElement).style.marginBottom = '20px'; // Increase spacing between sections
+          });
         }
       });
 
-      document.body.removeChild(printContent);
+      document.body.removeChild(printContent); // Clean up the cloned content
 
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      // Step 3: Create the PDF document
       const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
+        orientation: 'p', // Portrait orientation
+        unit: 'mm', // Use millimeters for measurements
+        format: 'a4', // Standard A4 size
+        compress: true // Enable compression for smaller file size
       });
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 30; // 20mm margins
-      const imgWidth = pageWidth - (margin * 2);
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageWidth = pdf.internal.pageSize.getWidth(); // Get A4 page width
+      const pageHeight = pdf.internal.pageSize.getHeight(); // Get A4 page height
+      const margin = 15; // Set consistent margins for all sides
 
-      let heightLeft = imgHeight;
-      let position = margin;
-      let page = 1;
+      const imgData = canvas.toDataURL('image/jpeg', 1.0); // Convert canvas to image data
 
-      // First page
+      const imgWidth = pageWidth - (margin * 2); // Calculate image width based on page and margins
+      const imgHeight = (canvas.height * imgWidth) / canvas.width; // Scale image proportionally
+
+      let position = margin; // Initial vertical position
+      let heightLeft = imgHeight; // Remaining height of the image
+
+      // Add the first page
       pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST');
-      heightLeft -= (pageHeight - (margin * 2));
+      heightLeft -= (pageHeight - margin * 2); // Subtract used height from remaining height
 
-      // Add subsequent pages
-      while (heightLeft > 0) {
-        position = -(pageHeight * page) + margin; // Calculate position for next page
+      // Add the second page if necessary
+      if (heightLeft > 0) {
+        position = -(pageHeight + margin); // Adjust position for the second page
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST');
-        heightLeft -= (pageHeight - (margin * 2));
-        page++;
       }
 
-      pdf.save('الميزانية-المالية.pdf');
+      // Step 4: Save the PDF
+      pdf.save('الميزانية-المالية.pdf'); // Save the PDF with the specified name
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('حدث خطأ أثناء إنشاء ملف PDF. يرجى المحاولة مرة أخرى.');
     } finally {
-      setIsPrinting(false);
+      setIsPrinting(false); // Reset printing state
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div 
-        ref={contentRef} 
-        className="max-w-[1024px] mx-auto bg-white p-6 sm:p-8 shadow-lg print:shadow-none print:p-4" 
+      <div
+        ref={contentRef}
+        className="max-w-[800px] mx-auto bg-white p-4 shadow-lg print:shadow-none print:p-2"
         dir="rtl"
       >
-        {/* Title */}
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 text-gray-800">
-          ميزانية صندوق عمارة 32 عمارات الاخاء 
-          <p className="text-lg sm:text-xl mt-1">(عمارات الشرطة)</p>
+        <h1 className="text-xl font-bold text-center mb-4 text-gray-800">
+          ميزانية صندوق عمارة 32 عمارات الاخاء
+          <p className="text-lg mt-1">(عمارات الشرطة)</p>
         </h1>
 
-        {/* Period */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div className="print:w-full">
-          <label className="block font-bold mb-2 text-gray-700 text-right">من تاريخ:</label>            <input
+            <label className="block font-bold mb-1 text-gray-700">من تاريخ:</label>
+            <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 print:border-none print:p-0"
+              className="w-full p-1 border rounded-lg focus:ring-2 focus:ring-blue-500 print:border-none print:p-0 text-right"
             />
           </div>
           <div className="print:w-full">
-            <label className="block font-bold mb-2 text-gray-700 text-right">حتى تاريخ:</label>
+            <label className="block font-bold mb-1 text-gray-700">حتى تاريخ:</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 print:border-none print:p-0"
+              className="w-full p-1 border rounded-lg focus:ring-2 focus:ring-blue-500 print:border-none print:p-0 text-right"
             />
           </div>
         </div>
 
-        {/* Starting Balance */}
-        <div className="mb-6">
-          <label className="block font-bold mb-2 text-gray-700 text-right">رصيد بداية الفترة:</label>
+        <div className="mb-4">
+          <label className="block font-bold mb-1 text-gray-700">رصيد بداية الفترة:</label>
           <input
             type="number"
             value={startBalance}
             onChange={(e) => setStartBalance(Number(e.target.value))}
-            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 print:border-none print:p-0"
+            className="w-full p-1 border rounded-lg focus:ring-2 focus:ring-blue-500 print:border-none print:p-0 text-right"
             placeholder="أدخل الرصيد الافتتاحي"
           />
         </div>
 
-        {/* Apartments Payments */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 text-right">اشتراكات الشقق في الصيانة الشهرية</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="border p-3 text-center">الاسم  </th>
-                  <th className="border p-3 text-center print:hidden">تم الدفع</th>
-                  <th className="border p-3 text-center">المبلغ المدفوع</th>
-                </tr>
-              </thead>
-              <tbody>
-                {apartmentPayments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="border p-3 text-center">{payment.name}</td>
-                    <td className="border p-3 text-center print:hidden">
-                      <button
-                        onClick={() => updateApartmentPayment(payment.id, 'paid', !payment.paid)}
-                        className={`p-1 rounded-full ${
-                          payment.paid ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
-                        }`}
-                      >
-                        {payment.paid ? '✓' : '✗'}
-                      </button>
-                    </td>
-                    <td className="border p-3 text-center">
-                      <div className="print:text-center">
-                        {payment.amount > 0 ? payment.amount : '-'}
-                      </div>
-                      <input
-                        type="number"
-                        value={payment.amount}
-                        onChange={(e) => updateApartmentPayment(payment.id, 'amount', Number(e.target.value))}
-                        className="w-full p-2 border rounded-lg bg-white print:hidden"
-                        placeholder="المبلغ"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-3 text-gray-800">اشتراكات الشقق في الصيانة الشهرية</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+            {apartmentPayments.map((payment) => (
+              <div
+                key={payment.id}
+                className={`p-1 rounded-md border ${payment.paid ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                  }`}
+              >
+                <div className="font-bold text-gray-800 mb-1 text-xs">{payment.name}</div>
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between gap-1">
+                    <button
+                      onClick={() => updateApartmentPayment(payment.id, 'paid', !payment.paid)}
+                      className={`p-0.5 rounded-full ${payment.paid ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+                        } print:hidden`}
+                    >
+                      {payment.paid ? '✓' : '✗'}
+                    </button>
+                    <input
+                      type="number"
+                      value={payment.amount}
+                      onChange={(e) => updateApartmentPayment(payment.id, 'amount', Number(e.target.value))}
+                      className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right text-base font-normal placeholder-gray-400 print:border-none print:p-2 print:text-base print:break-words" placeholder="المبلغ"
+                      step="0.01" // Allows decimal values if needed
+                      min="0" // Ensures only positive numbers are entered
+                    />
+                  </div>
+                  {payment.paid && (
+                    <div className="text-center text-green-600 font-bold bg-green-100 p-0.5 rounded-md text-xs">
+                      تم الدفع ✓
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="mt-4 font-bold text-gray-700 text-right">
-            إجمالي الاشتراكات الشهرية للشقق: {totalApartmentPayments} جنيه
-          </p>
         </div>
 
-        {/* Income Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 text-right">دخل إضافي</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="border p-3 text-center">وصف الدخل</th>
-                  <th className="border p-3 text-center">المبلغ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {incomeEntries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="border p-3 text-center">
-                      <div className="print:text-center">
-                        {entry.description || '-'}
-                      </div>
-                      <input
-                        type="text"
-                        value={entry.description}
-                        onChange={(e) => updateEntry(entry.id, 'description', e.target.value, 'income')}
-                        className="w-full p-2 border rounded-lg bg-white print:hidden"
-                        placeholder="وصف الدخل"
-                      />
-                    </td>
-                    <td className="border p-3 text-center">
-                      <div className="print:text-center">
-                        {entry.amount > 0 ? entry.amount : '-'}
-                      </div>
-                      <input
-                        type="number"
-                        value={entry.amount}
-                        onChange={(e) => updateEntry(entry.id, 'amount', Number(e.target.value), 'income')}
-                        className="w-full sm:w-48 p-2 border rounded-lg bg-white print:hidden"
-                        placeholder="المبلغ"
-                      />
-                    </td>
-                    <td className="border p-3 text-center print:hidden">
-                      <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2 bg-white border rounded-md hover:bg-gray-50 print:hidden">
-                        <i className="fas fa-image text-gray-600" style={{ fontSize: 20 }}></i>
-                        <span className="text-sm text-gray-600">إرفاق صورة</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(entry.id, 'income', e)}
-                          className="hidden"
-                        />
-                      </label>
-                      {entry.image && (
-                        <div className="mt-2 print:flex print:justify-center">
-                          <img
-                            src={entry.image}
-                            alt="المرفق"
-                            className="max-h-32 rounded-md"
-                          />
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-3 text-gray-800">دخل إضافي</h2>
+          <div className="space-y-2">
+            {incomeEntries.map((entry) => (
+              <div key={entry.id} className="p-2 border rounded-lg bg-white">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-1">
+                  <div>
+                    <label className="block font-bold mb-1 text-gray-700 text-sm">وصف الدخل:</label>
+                    <input
+                      type="text"
+                      value={entry.description}
+                      onChange={(e) => updateEntry(entry.id, 'description', e.target.value, 'income')}
+                      className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus: text-right" placeholder="وصف الدخل"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold mb-1 text-gray-700 text-sm">المبلغ:</label>
+                    <input
+                      type="number"
+                      value={entry.amount}
+                      onChange={(e) => updateEntry(entry.id, 'amount', Number(e.target.value), 'income')}
+                      className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus: text-right"
+                      placeholder="المبلغ"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1 cursor-pointer text-blue-600 hover:text-blue-700 print:hidden text-sm">
+                    <Upload size={16} />
+                    <span>إضافة صورة</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(entry.id, 'income', e)}
+                      className="hidden"
+                    />
+                  </label>
+                  {entry.image && (
+                    <img
+                      src={entry.image}
+                      alt="إيصال"
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
           <button
             onClick={() => addEntry('income')}
-            className="mt-2 text-green-600 hover:bg-green-50 p-2 rounded-lg print:hidden"
+            className="mt-1 text-green-600 hover:bg-green-50 p-1 rounded-lg print:hidden text-sm"
           >
             إضافة دخل جديد
           </button>
         </div>
 
-        {/* Expenses Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 text-right">المصروفات</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="border p-3 text-center">وصف المصروف</th>
-                  <th className="border p-3 text-center">المبلغ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenseEntries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="border p-3 text-center">
-                      <div className="print:text-center">
-                        {entry.description || '-'}
-                      </div>
-                      <input
-                        type="text"
-                        value={entry.description}
-                        onChange={(e) => updateEntry(entry.id, 'description', e.target.value, 'expense')}
-                        className="w-full p-2 border rounded-lg bg-white print:hidden"
-                        placeholder="وصف المصروف"
-                      />
-                    </td>
-                    <td className="border p-3 text-center">
-                      <div className="print:text-center">
-                        {entry.amount > 0 ? entry.amount : '-'}
-                      </div>
-                      <input
-                        type="number"
-                        value={entry.amount}
-                        onChange={(e) => updateEntry(entry.id, 'amount', Number(e.target.value), 'expense')}
-                        className="w-full sm:w-48 p-2 border rounded-lg bg-white print:hidden"
-                        placeholder="المبلغ"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-3 text-gray-800">المصروفات</h2>
+          <div className="space-y-2">
+            {expenseEntries.map((entry) => (
+              <div key={entry.id} className="p-2 border rounded-lg bg-white">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-1">
+                  <div>
+                    <label className="block font-bold mb-1 text-gray-700 text-sm">وصف المصروف:</label>
+                    <input
+                      type="text"
+                      value={entry.description}
+                      onChange={(e) => updateEntry(entry.id, 'description', e.target.value, 'expense')}
+                      className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus: text-right" placeholder="وصف المصروف"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold mb-1 text-gray-700 text-sm">المبلغ:</label>
+                    <input
+                      type="number"
+                      value={entry.amount}
+                      onChange={(e) => updateEntry(entry.id, 'amount', Number(e.target.value), 'expense')}
+                      className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus: text-right" placeholder="المبلغ"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1 cursor-pointer text-blue-600 hover:text-blue-700 print:hidden text-sm">
+                    <Upload size={16} />
+                    <span>إضافة صورة</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(entry.id, 'expense', e)}
+                      className="hidden"
+                    />
+                  </label>
+                  {entry.image && (
+                    <img
+                      src={entry.image}
+                      alt="إيصال"
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
           <button
             onClick={() => addEntry('expense')}
-            className="mt-2 text-green-600 hover:bg-green-50 p-2 rounded-lg print:hidden"
+            className="mt-1 text-green-600 hover:bg-green-50 p-1 rounded-lg print:hidden text-sm"
           >
             إضافة مصروف جديد
           </button>
         </div>
 
-        {/* Totals */}
-        <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-          <p className="font-bold text-gray-700 mb-2 text-right">إجمالي الدخل: {totalIncome} جنيه</p>
-          <p className="font-bold text-gray-700 mb-2 text-right">إجمالي المصروفات: {totalExpenses} جنيه</p>
-          <p className={`font-bold text-right" ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+        <div className="mb-4 p-2 bg-gray-50 rounded-lg">
+          <p className="font-bold text-gray-700 mb-1 text-sm">إجمالي الدخل: {totalIncome} جنيه</p>
+          <p className="font-bold text-gray-700 mb-1 text-sm">إجمالي المصروفات: {totalExpenses} جنيه</p>
+          <p className={`font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'} text-sm`}>
             صافي الرصيد: {netBalance} جنيه
           </p>
         </div>
 
-        {/* Notes */}
-        <div className="mb-8">
-          <label className="block font-bold mb-2 text-gray-700 text-right">ملاحظات:</label>
-          <div className="print:text-center print:min-h-[100px] print:border print:p-4 print:rounded-lg text-right">
+        <div className="mb-4">
+          <label className="block font-bold mb-1 text-gray-700 text-sm">ملاحظات:</label>
+          <div className="print:text-center print:min-h-[60px] print:border print:p-2 print:rounded-lg text-sm">
             {notes || 'لا توجد ملاحظات'}
           </div>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full p-4 border rounded-lg min-h-[120px] resize-y print:hidden"
+            className="w-full p-2 border rounded-lg min-h-[80px] resize-y print:hidden text-sm"
             placeholder="أضف ملاحظاتك هنا..."
           />
         </div>
 
-        {/* Download PDF Button - Hidden in Print and PDF */}
         {!isPrinting && (
           <button
             onClick={generatePDF}
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors print:hidden"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-1 rounded-lg hover:bg-blue-700 transition-colors print:hidden text-sm"
           >
             تحميل كملف PDF
           </button>
