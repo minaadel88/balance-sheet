@@ -111,13 +111,6 @@ function App() {
     }
   };
 
-  const removeEntry = (id: string, type: 'income' | 'expense') => {
-    if (type === 'income') {
-      setIncomeEntries(incomeEntries.filter((entry) => entry.id !== id));
-    } else {
-      setExpenseEntries(expenseEntries.filter((entry) => entry.id !== id));
-    }
-  };
 
   const updateEntry = (
     id: string,
